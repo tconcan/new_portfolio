@@ -3,11 +3,9 @@ import Navbar from "./components/Navbar";
 import Background from "./components/Background";
 import Hero from "./components/Hero";
 import About from "./components/About";
-// import FeaturedProject from "./components/FeaturedProject";
-// import Projects from "./pages/Projects";
 // import Experience from "./components/Experience";
-// import Involvement from "./components/Involvement";
-// import Contact from "./components/Contact";
+import Involvement from "./components/Involvement";
+import Footer from "./components/Footer";
 
 function App() {
   return (
@@ -16,6 +14,9 @@ function App() {
       <Background />
       <Hero />
       <About />
+      {/* <Experience /> */}
+      <Involvement />
+      <Footer />
     </div>
   );
 }
