@@ -12,7 +12,7 @@ function BackgroundSim() {
 
     let maxRadius = 100;
 
-    const metaballsCount = 10;
+    const metaballsCount = 20;
     const metaballs = Array.from({ length: metaballsCount }, () => {
       const radius = maxRadius / 2 + Math.random() * maxRadius / 2;
       return {
