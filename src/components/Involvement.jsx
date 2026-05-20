@@ -40,11 +40,11 @@ function Involvement() {
     },
     {
       name: "United States Air Force",
-      role: "Second Lutenant",
+      role: "Second Lieutenant",
       logo: "/involvement/usaf.webp",
-      description: "After graduation, I will be commissioning as a Second Lieutenant in the United States Air Force through OTS. I will be serving as a Cyber Operations Officer.",
+      description: "After graduation, I will be commissioning as a Second Lieutenant in the United States Air Force through OTS. I will be serving as a Developmental Engineer (62EC).",
       dates: "January 2027",
-      highlights: ["17D"]
+      highlights: ["62EC"]
     }
   ];
 
