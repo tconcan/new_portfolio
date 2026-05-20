@@ -51,17 +51,36 @@ function Experience() {
 
                 {/* Right - Content */}
                 <div className="md:col-span-2">
-                  <div className="mb-4">
+                  {/* Mobile Header (Visible on Mobile Only) */}
+                  <div className="flex items-center gap-4 mb-4 md:hidden border-b border-gray-700/50 pb-3">
+                    <img 
+                      src={experience.logo}
+                      alt={experience.company}
+                      className="w-14 h-14 object-contain rounded-lg bg-gray-700/30 p-1 border border-gray-700"
+                    />
+                    <div>
+                      <h3 className="text-xl font-bold text-white leading-tight">
+                        {experience.role}
+                      </h3>
+                      <p className="text-purple-400 font-medium mt-0.5">
+                        {experience.company}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Desktop Header (Hidden on Mobile) */}
+                  <div className="hidden md:block mb-4">
                     <h3 className="text-2xl md:text-3xl font-bold text-white mb-1">
                       {experience.role}
                     </h3>
                     <p className="text-lg md:text-xl text-purple-400 mb-1">
                       {experience.company}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      {experience.location} • {experience.dates}
-                    </p>
                   </div>
+
+                  <p className="text-sm text-gray-500 mb-4">
+                    {experience.location} • {experience.dates}
+                  </p>
 
                   <ul className="text-gray-300 text-base md:text-lg leading-relaxed space-y-3 list-disc list-outside pl-6 md:pl-8 marker:text-purple-400">
                     {experience.description.map((point, idx) => (

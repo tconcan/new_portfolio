@@ -13,32 +13,32 @@ function About() {
               <img 
                 src="about/portrait.webp" 
                 alt="Tom Concannon" 
-                className="rounded-xl shadow-2xl max-w-md w-full object-cover border-4 border-blue-400"
+                className="rounded-xl shadow-2xl max-w-xs sm:max-w-sm md:max-w-md w-full object-cover border-4 border-blue-400"
               />
             </div>
 
             {/* Right column - Content */}
-            <div className="text-gray-300 space-y-6">             
-              <p className="text-lg leading-relaxed">
+            <div className="text-gray-300 space-y-6 text-center md:text-left">             
+              <p className="text-base sm:text-lg leading-relaxed">
                 Through my coursework and projects, I've developed a strong foundation in embedded systems, 
                 working with everything from IoT devices to real-time operating systems. I'm eager to apply 
                 my knowledge and continue learning in a professional setting.
               </p>
-              <p className="text-lg leading-relaxed">
+              <p className="text-base sm:text-lg leading-relaxed">
                 I'm a leader. I enjoy taking initiative, and motivating diverse teams 
                 towards success. My history of leading projects and mentoring peers
                 has honed my ability to inspire and guide others effectively. 
               </p>
-              <div className="pt-4 flex gap-4 justify-center">
+              <div className="pt-4 flex gap-4 justify-center md:justify-start">
                 <a 
                   href="#experience" 
-                  className="border border-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg font-semibold transition-colors"
+                  className="border border-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
                   Experience
                 </a>
                 <a 
                   href="#involvement" 
-                  className="border border-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg font-semibold transition-colors"
+                  className="border border-white hover:bg-white hover:text-gray-900 px-6 py-3 rounded-lg font-semibold transition-colors text-sm sm:text-base"
                 >
                   Involvement
                 </a>

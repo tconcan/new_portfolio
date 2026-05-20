@@ -7,12 +7,12 @@ function Hero() {
         <img 
           src="hero/tom.webp" 
           alt="Tom Concannon" 
-          className="w-72 h-72 rounded-full mx-auto mb-8 object-cover border-4 border-blue-400 shadow-lg"
+          className="w-56 h-56 md:w-72 md:h-72 rounded-full mx-auto mb-8 object-cover border-4 border-blue-400 shadow-lg"
         />
-        <h1 className="text-5xl md:text-7xl font-bold mb-6">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6">
           Hi, I'm Tom
         </h1>
-        <p className="text-xl md:text-2xl text-gray-300 mb-8">
+        <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-8">
           Embedded Software Engineer <span className="mx-2">|</span> Leader
         </p>
         <div className="flex gap-4 justify-center">
@@ -23,7 +23,7 @@ function Hero() {
             Projects
           </Link>
           <a 
-            href="mailto:your.email@example.com" 
+            href="mailto:thomascon04@gmail.com" 
             className="border border-white hover:bg-white hover:text-gray-900 px-8 py-3 rounded-lg font-semibold transition-colors"
           >
             Contact

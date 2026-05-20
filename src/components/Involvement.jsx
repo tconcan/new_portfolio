@@ -86,7 +86,7 @@ function Involvement() {
         </h2>
       </div>
 
-      <div className="relative mb-2">
+      <div className="relative mb-2 w-full overflow-hidden">
         <div className="flex gap-4 md:gap-8 animate-scroll pl-4 md:pl-8">
           {duplicatedLogos.map((logo, index) => (
             <a
@@ -109,7 +109,7 @@ function Involvement() {
 
       {/* Manual carousel with detailed cards */}
       <div className="relative px-4 sm:px-6">
-        <div className="relative min-h-[500px] md:h-[600px] flex items-center justify-center py-8 md:py-0">
+        <div className="relative min-h-[560px] sm:min-h-[480px] md:h-[600px] flex items-center justify-center py-8 md:py-0">
           {detailedInvolvement.map((item, index) => {
             const offset = index - currentCard;
             const isActive = index === currentCard;
@@ -135,9 +135,9 @@ function Involvement() {
                   maxWidth: '800px'
                 }}
               >
-                <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-4 sm:p-6 md:p-12 border border-gray-700 h-full">
+                <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-5 md:p-12 border border-gray-700 h-full">
                   <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8 ${item.image ? 'items-start' : 'items-center'}`}>
-                    {/* Left - Image */}
+                    {/* Left - Image (Desktop Only) */}
                     <div className={`hidden md:flex ${item.image ? 'flex-col items-start justify-start -space-y-8 -mt-8' : 'flex-col items-center justify-center'}`}>
                       <img 
                         src={item.logo}
@@ -155,35 +155,67 @@ function Involvement() {
 
                     {/* Right - Content */}
                     <div className="md:col-span-2 text-gray-300 space-y-3 md:space-y-4">
-                      <div>
+                      {/* Mobile Header (Visible on Mobile Only) */}
+                      <div className="flex items-center gap-4 md:hidden border-b border-gray-700/50 pb-3">
+                        <img 
+                          src={item.logo}
+                          alt={item.name}
+                          className="w-14 h-14 object-contain rounded-lg bg-gray-700/30 p-1 border border-gray-700"
+                        />
+                        <div>
+                          <h3 className="text-xl font-bold text-white leading-tight">
+                            {item.name}
+                          </h3>
+                          <p className="text-sm text-purple-400 font-medium mt-0.5">
+                            {item.role}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Desktop Header (Hidden on Mobile) */}
+                      <div className="hidden md:block">
                         <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                           {item.name}
                         </h3>
                         <p className="text-lg sm:text-xl text-purple-400 mb-1">
                           {item.role}
                         </p>
+                      </div>
+
+                      <div>
                         <p className="text-xs sm:text-sm text-gray-500">
                           {item.dates}
                         </p>
                       </div>
 
-                      <p className="text-base sm:text-lg leading-relaxed">
+                      <p className="text-sm sm:text-base md:text-lg leading-relaxed">
                         {item.description}
                       </p>
 
                       <div>
-                        <h4 className="font-semibold text-white mb-2 text-sm sm:text-base">Highlights</h4>
+                        <h4 className="font-semibold text-white mb-2 text-xs sm:text-sm">Highlights</h4>
                         <div className="flex flex-wrap gap-2">
                           {item.highlights.map((highlight, idx) => (
                             <span 
                               key={idx}
-                              className="bg-purple-600 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm"
+                              className="bg-purple-600 px-2.5 py-1 rounded-full text-xs"
                             >
                               {highlight}
                             </span>
                           ))}
                         </div>
                       </div>
+
+                      {/* Mobile Additional Image (Visible on Mobile Only) */}
+                      {item.image && (
+                        <div className="md:hidden mt-3 pt-2 border-t border-gray-700/30">
+                          <img 
+                            src={item.image}
+                            alt={`${item.name} additional`}
+                            className="w-full max-h-32 object-contain rounded-lg"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
