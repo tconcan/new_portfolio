@@ -2,17 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-1792px); /* (192px + 32px) * num_logos = 1120px */
-  }
+/* Involvement logo strip: scrollable, but without a visible scrollbar */
+.logo-strip {
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
 }
 
-.animate-scroll {
-  animation: scroll 30s linear infinite;
+.logo-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-glow {

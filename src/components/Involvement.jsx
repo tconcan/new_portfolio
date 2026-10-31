@@ -1,4 +1,172 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+const SCROLL_SPEED = 50; // px per second
+const RESUME_DELAY = 1500; // ms after the user stops interacting
+
+// Infinite, auto-advancing logo strip that the user can also scroll, swipe or
+// drag. The logos are rendered three times and scrollLeft is kept inside the
+// middle copy: whenever it leaves, it is shifted by exactly one copy's width,
+// which looks identical, so the loop never visibly jumps in either direction.
+function LogoStrip({ logos }) {
+  const scrollerRef = useRef(null);
+  const firstOfSet = useRef([]); // first logo element of each copy
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    let setWidth = 0;
+    let pos = 0; // float position; scrollLeft may round to whole pixels
+    let paused = false;
+    let resumeTimer = null;
+    let frame = null;
+    let last = null;
+    let drag = null;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const measure = () => {
+      const [a, b] = firstOfSet.current;
+      if (!a || !b) return;
+      const offsetInSet = setWidth ? pos - setWidth : 0;
+      setWidth = b.offsetLeft - a.offsetLeft; // one copy, including its gaps
+      pos = setWidth + offsetInSet;
+      el.scrollLeft = pos;
+    };
+
+    // Keep the position inside the middle copy. Returns the shift applied.
+    const wrap = () => {
+      if (!setWidth) return 0;
+      let shift = 0;
+      if (el.scrollLeft < setWidth * 0.5) shift = setWidth;
+      else if (el.scrollLeft >= setWidth * 1.5) shift = -setWidth;
+      if (shift) {
+        el.scrollLeft += shift;
+        pos += shift;
+        if (drag) drag.startScroll += shift;
+      }
+      return shift;
+    };
+
+    const pause = () => {
+      paused = true;
+      clearTimeout(resumeTimer);
+    };
+    const resumeLater = () => {
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { paused = false; }, RESUME_DELAY);
+    };
+
+    const tick = (t) => {
+      const dt = last === null ? 0 : Math.min(t - last, 50) / 1000;
+      last = t;
+      // Pick up any position change made by the user (wheel, swipe, drag).
+      if (Math.abs(el.scrollLeft - pos) > 1) pos = el.scrollLeft;
+      if (!paused && !reduceMotion && setWidth) {
+        pos += SCROLL_SPEED * dt;
+        el.scrollLeft = pos;
+        wrap();
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    // Mouse drag-to-scroll (touch and trackpads scroll natively).
+    const onPointerDown = (e) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = { startX: e.clientX, startScroll: el.scrollLeft, moved: false };
+      pause();
+    };
+    const onPointerMove = (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.startX;
+      if (Math.abs(dx) > 5) drag.moved = true;
+      if (drag.moved) {
+        el.scrollLeft = drag.startScroll - dx;
+        pos = el.scrollLeft;
+        wrap();
+      }
+    };
+    const onPointerUp = () => {
+      if (!drag) return;
+      const wasDrag = drag.moved;
+      drag = null;
+      // Swallow the click that ends a drag so it doesn't open a link.
+      // The click fires right after pointerup, so drop the guard on the next
+      // tick in case the drag ended outside the strip and no click comes.
+      if (wasDrag) {
+        const swallow = (e) => e.preventDefault();
+        el.addEventListener('click', swallow, { capture: true, once: true });
+        setTimeout(() => el.removeEventListener('click', swallow, { capture: true }), 0);
+      }
+      if (!el.matches(':hover')) resumeLater();
+    };
+
+    const onScroll = () => wrap();
+    const onEnter = () => pause();
+    const onLeave = () => { if (!drag) resumeLater(); };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+    el.addEventListener('pointerenter', onEnter);
+    el.addEventListener('pointerleave', onLeave);
+    el.addEventListener('touchstart', pause, { passive: true });
+    el.addEventListener('touchend', resumeLater, { passive: true });
+    el.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    frame = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(resumeTimer);
+      ro.disconnect();
+      el.removeEventListener('scroll', onScroll);
+      el.removeEventListener('pointerenter', onEnter);
+      el.removeEventListener('pointerleave', onLeave);
+      el.removeEventListener('touchstart', pause);
+      el.removeEventListener('touchend', resumeLater);
+      el.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+  }, [logos.length]);
+
+  const copies = [0, 1, 2];
+
+  return (
+    <div
+      ref={scrollerRef}
+      className="logo-strip mb-2 overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing select-none"
+      aria-label="Organizations I'm involved with"
+    >
+      <div className="flex w-max gap-4 md:gap-8 py-3">
+        {copies.map((copy) =>
+          logos.map((logo, i) => (
+            <a
+              key={`${copy}-${i}`}
+              ref={i === 0 ? (node) => { firstOfSet.current[copy] = node; } : undefined}
+              href={logo.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              draggable={false}
+              aria-hidden={copy !== 1 ? true : undefined}
+              tabIndex={copy !== 1 ? -1 : undefined}
+              className="flex-shrink-0 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 shadow-lg flex items-center justify-center p-4 md:p-6 hover:scale-105 transition-transform"
+            >
+              <img
+                src={logo.image}
+                alt={logo.name}
+                draggable={false}
+                className="max-w-full max-h-full object-contain pointer-events-none"
+              />
+            </a>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
 function Involvement() {
   const logos = [
@@ -9,7 +177,8 @@ function Involvement() {
     { name: "ASC", image: "/involvement/asc.webp", url: "https://www.purdue.edu/asc/" },
     { name: "HKN", image: "/involvement/hkn.webp", url: "https://hkn.ieee.org/" },
     { name: "es@p", image: "/involvement/esap1.webp", url: "https://embedded-purdue.github.io/" },
-    { name: "USAF", image: "/involvement/usaf.webp", url: "https://www.airforce.com/" }
+    { name: "USAF", image: "/involvement/usaf.webp", url: "https://www.airforce.com/" },
+    { name: "Roma Tom", image: "/involvement/romatom.webp", url: "https://romatom.com/" }
   ];
 
   const detailedInvolvement = [
@@ -66,9 +235,6 @@ function Involvement() {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Duplicate logos for seamless loop
-  const duplicatedLogos = [...logos, ...logos];
-
   const nextCard = () => {
     setCurrentCard((prev) => (prev + 1) % detailedInvolvement.length);
   };
@@ -86,26 +252,7 @@ function Involvement() {
         </h2>
       </div>
 
-      <div className="relative mb-2">
-        <div className="flex gap-4 md:gap-8 animate-scroll pl-4 md:pl-8">
-          {duplicatedLogos.map((logo, index) => (
-            <a
-              key={index}
-              href={logo.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-shrink-0 w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 shadow-lg flex items-center justify-center p-4 md:p-6 hover:scale-105 transition-transform cursor-pointer"
-            >
-              <img
-                src={logo.image}
-                alt={logo.name}
-                loading="lazy"
-                className="max-w-full max-h-full object-contain"
-              />
-            </a>
-          ))}
-        </div>
-      </div>
+      <LogoStrip logos={logos} />
 
       {/* Manual carousel with detailed cards */}
       <div className="relative px-4 sm:px-6">
