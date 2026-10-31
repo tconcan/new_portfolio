@@ -83,6 +83,20 @@ function Navbar() {
             </svg>
           </a>
 
+          <a
+            href="https://romatom.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-glow cursor-pointer"
+            aria-label="Roma Tom"
+          >
+            <img
+              src="/navbar/romatom.webp"
+              alt=""
+              className="h-5 sm:h-6 w-auto"
+            />
+          </a>
+
           {/* Mobile Menu Button */}
           <button
             onClick={toggleMenu}
