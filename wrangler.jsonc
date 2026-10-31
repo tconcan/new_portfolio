@@ -1,9 +1,9 @@
 // Cloudflare Workers deployment (portfolio.thomascon04.workers.dev).
-// Serves the CRA build as static assets.
+// Serves the Vite build (./build) as static assets.
 {
   "$schema": "https://unpkg.com/wrangler@4/config-schema.json",
   "name": "portfolio",
-  "main": "worker/index.js",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-05-20",
   "observability": {
     "enabled": true
@@ -14,7 +14,7 @@
     // React Router handles /projects etc. in the browser, so unknown paths
     // must return index.html instead of 404 (fixes reloading /projects).
     "not_found_handling": "single-page-application",
-    // Only video requests go through worker/index.js (Range support for iOS
+    // Only video requests go through worker/index.ts (Range support for iOS
     // Safari); everything else is served straight from the assets.
     "run_worker_first": ["/projects/*.mp4"]
   }

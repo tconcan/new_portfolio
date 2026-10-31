@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Custom rules live after the utilities on purpose: some of them (e.g.
+ * .nav-glow's transition) intentionally win over utility classes on the same
+ * element.
+ */
+
+/* ---- Page ---------------------------------------------------------------- */
+
 /* Match the app background so overscroll/bounce areas and Safari's toolbar
    tint never show white. */
 html,
@@ -16,11 +24,12 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+/* ---- Animated background --------------------------------------------------- */
+
 /* Full-screen metaball canvas. It deliberately overshoots the screen by 80px
    top and bottom (plus the safe areas): 100lvh alone wasn't enough on iOS
    Safari, which treats fixed elements that end exactly at the screen edge
-   specially under its floating toolbar. Overshooting guarantees it is drawn
-   all the way to the bottom however tall the visible area gets. */
+   specially under its floating toolbar. */
 .background-canvas {
   position: fixed;
   left: 0;
@@ -30,8 +39,21 @@ body {
   height: calc(100lvh + 160px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
 }
 
-/* Involvement logo strip: drag/swipe handled in JS; vertical page scrolling
-   stays native. */
+/* ---- Navigation -------------------------------------------------------------- */
+
+.nav-glow {
+  transition: all 0.5s ease-in-out;
+  opacity: 1;
+}
+
+.nav-glow:hover {
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+}
+
+/* ---- Involvement logo strip ---------------------------------------------------- */
+
+/* Drag/swipe is handled in JS; vertical page scrolling stays native. */
 .logo-strip {
   touch-action: pan-y;
   cursor: grab;
@@ -41,15 +63,7 @@ body {
   cursor: grabbing;
 }
 
-.nav-glow {
-  transition: all 0.5s ease-in-out;
-  opacity: 1;
-}
-  
-.nav-glow:hover {
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
-}
+/* ---- Projects masonry grid (react-masonry-css) ---------------------------------- */
 
 .masonry-grid {
   display: flex;
@@ -62,6 +76,6 @@ body {
   background-clip: padding-box;
 }
 
-.masonry-grid_column > div {
+.masonry-grid_column > * {
   margin-bottom: 24px;
 }
