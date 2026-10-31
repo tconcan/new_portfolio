@@ -6,9 +6,20 @@ function BackgroundSim() {
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
+    let frame = null;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Size the drawing buffer to the canvas's CSS box. The CSS height is the
+    // *large* viewport (100lvh), so on iOS Safari the canvas still covers the
+    // area behind the toolbar after it collapses; window.innerHeight would not.
+    function fitToBox() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+    }
+    fitToBox();
 
     let maxRadius = 100;
 
@@ -162,24 +173,22 @@ function BackgroundSim() {
       ctx.putImageData(imageData, 0, 0);
 
       update();
-      requestAnimationFrame(animate);
+      frame = requestAnimationFrame(animate);
     }
 
     animate();
 
-    // Resize handler
-    function handleResize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("resize", fitToBox);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", fitToBox);
+    };
   }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      className="fixed top-0 left-0 w-full h-full -z-10"
+      className="background-canvas -z-10"
     />
   );
 }

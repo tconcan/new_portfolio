@@ -1,134 +1,147 @@
 import { useState, useEffect, useRef } from 'react';
 
-const SCROLL_SPEED = 50; // px per second
-const RESUME_DELAY = 1500; // ms after the user stops interacting
+const AUTO_SPEED = 45; // px/s, idle drift
+const MAX_FLING_SPEED = 1400; // px/s, cap on how fast a flick can send it
+const SETTLE_TIME = 0.35; // s, time constant for a fling to ease back to the drift
 
-// Infinite, auto-advancing logo strip that the user can also scroll, swipe or
-// drag. The logos are rendered three times and scrollLeft is kept inside the
-// middle copy: whenever it leaves, it is shifted by exactly one copy's width,
-// which looks identical, so the loop never visibly jumps in either direction.
+// Infinite logo strip. Position is owned by JS and applied as a transform, so
+// the loop is a plain modulo over one copy's width and can never jump. Touch
+// and mouse drags move it directly, flicks glide (with a speed cap) and then
+// ease back into the idle drift. Vertical page scrolling stays native.
 function LogoStrip({ logos }) {
-  const scrollerRef = useRef(null);
+  const viewportRef = useRef(null);
+  const trackRef = useRef(null);
   const firstOfSet = useRef([]); // first logo element of each copy
 
   useEffect(() => {
-    const el = scrollerRef.current;
+    const viewport = viewportRef.current;
+    const track = trackRef.current;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const drift = reduceMotion ? 0 : AUTO_SPEED;
+
     let setWidth = 0;
-    let pos = 0; // float position; scrollLeft may round to whole pixels
-    let paused = false;
-    let resumeTimer = null;
+    let pos = 0; // px scrolled into the strip, kept in [0, setWidth)
+    let velocity = drift; // px/s, positive moves content left
     let frame = null;
     let last = null;
     let drag = null;
 
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const clampSpeed = (v) => Math.max(-MAX_FLING_SPEED, Math.min(MAX_FLING_SPEED, v));
+    const wrap = (p) => (setWidth ? ((p % setWidth) + setWidth) % setWidth : p);
+    const render = () => {
+      track.style.transform = `translate3d(${-pos}px, 0, 0)`;
+    };
 
     const measure = () => {
       const [a, b] = firstOfSet.current;
       if (!a || !b) return;
-      const offsetInSet = setWidth ? pos - setWidth : 0;
       setWidth = b.offsetLeft - a.offsetLeft; // one copy, including its gaps
-      pos = setWidth + offsetInSet;
-      el.scrollLeft = pos;
-    };
-
-    // Keep the position inside the middle copy. Returns the shift applied.
-    const wrap = () => {
-      if (!setWidth) return 0;
-      let shift = 0;
-      if (el.scrollLeft < setWidth * 0.5) shift = setWidth;
-      else if (el.scrollLeft >= setWidth * 1.5) shift = -setWidth;
-      if (shift) {
-        el.scrollLeft += shift;
-        pos += shift;
-        if (drag) drag.startScroll += shift;
-      }
-      return shift;
-    };
-
-    const pause = () => {
-      paused = true;
-      clearTimeout(resumeTimer);
-    };
-    const resumeLater = () => {
-      clearTimeout(resumeTimer);
-      resumeTimer = setTimeout(() => { paused = false; }, RESUME_DELAY);
+      pos = wrap(pos);
+      render();
     };
 
     const tick = (t) => {
       const dt = last === null ? 0 : Math.min(t - last, 50) / 1000;
       last = t;
-      // Pick up any position change made by the user (wheel, swipe, drag).
-      if (Math.abs(el.scrollLeft - pos) > 1) pos = el.scrollLeft;
-      if (!paused && !reduceMotion && setWidth) {
-        pos += SCROLL_SPEED * dt;
-        el.scrollLeft = pos;
-        wrap();
+      if (!drag) {
+        velocity += (drift - velocity) * (1 - Math.exp(-dt / SETTLE_TIME));
+        pos = wrap(pos + velocity * dt);
+        render();
       }
       frame = requestAnimationFrame(tick);
     };
 
-    // Mouse drag-to-scroll (touch and trackpads scroll natively).
     const onPointerDown = (e) => {
-      if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      drag = { startX: e.clientX, startScroll: el.scrollLeft, moved: false };
-      pause();
-    };
-    const onPointerMove = (e) => {
-      if (!drag) return;
-      const dx = e.clientX - drag.startX;
-      if (Math.abs(dx) > 5) drag.moved = true;
-      if (drag.moved) {
-        el.scrollLeft = drag.startScroll - dx;
-        pos = el.scrollLeft;
-        wrap();
-      }
-    };
-    const onPointerUp = () => {
-      if (!drag) return;
-      const wasDrag = drag.moved;
-      drag = null;
-      // Swallow the click that ends a drag so it doesn't open a link.
-      // The click fires right after pointerup, so drop the guard on the next
-      // tick in case the drag ended outside the strip and no click comes.
-      if (wasDrag) {
-        const swallow = (e) => e.preventDefault();
-        el.addEventListener('click', swallow, { capture: true, once: true });
-        setTimeout(() => el.removeEventListener('click', swallow, { capture: true }), 0);
-      }
-      if (!el.matches(':hover')) resumeLater();
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      drag = { id: e.pointerId, startX: e.clientX, lastX: e.clientX, moved: false, samples: [] };
+      velocity = 0; // grabbing it stops it
     };
 
-    const onScroll = () => wrap();
-    const onEnter = () => pause();
-    const onLeave = () => { if (!drag) resumeLater(); };
+    const onPointerMove = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.lastX;
+      drag.lastX = e.clientX;
+      if (!drag.moved) {
+        if (Math.abs(e.clientX - drag.startX) < 6) return;
+        drag.moved = true;
+        viewport.classList.add('is-dragging');
+        try { viewport.setPointerCapture(e.pointerId); } catch {}
+      }
+      pos = wrap(pos - dx);
+      render();
+      drag.samples.push({ x: e.clientX, t: e.timeStamp });
+      while (drag.samples.length > 2 && e.timeStamp - drag.samples[0].t > 80) drag.samples.shift();
+    };
+
+    const onPointerUp = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const { moved, samples } = drag;
+      drag = null;
+      viewport.classList.remove('is-dragging');
+      if (!moved) return; // a tap: let the link click through
+
+      // Release velocity from the last ~80ms of movement; none if the finger
+      // was held still before letting go or the browser took the gesture.
+      const first = samples[0];
+      const lastSample = samples[samples.length - 1];
+      const held = !lastSample || e.timeStamp - lastSample.t > 80;
+      const span = lastSample && first ? (lastSample.t - first.t) / 1000 : 0;
+      velocity = e.type === 'pointercancel' || held || span <= 0
+        ? 0
+        : clampSpeed(-(lastSample.x - first.x) / span);
+
+      // Swallow the click that ends a drag so it doesn't open a link. Drop the
+      // guard on the next tick in case no click comes.
+      const swallow = (ev) => ev.preventDefault();
+      viewport.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => viewport.removeEventListener('click', swallow, { capture: true }), 0);
+    };
+
+    // Horizontal trackpad swipes scroll the strip; vertical wheel scrolls the page.
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      pos = wrap(pos + e.deltaX);
+      velocity = 0;
+      render();
+    };
+
+    // Keyboard focus: bring the focused logo into view. Ignore mouse/touch
+    // focus, or the logo would slide out from under the pointer mid-click.
+    const onFocusIn = (e) => {
+      viewport.scrollLeft = 0; // the browser may scroll the clipped box itself
+      const link = e.target.closest('a');
+      if (!link || !link.matches(':focus-visible')) return;
+      const r = link.getBoundingClientRect();
+      const vr = viewport.getBoundingClientRect();
+      if (r.left >= vr.left && r.right <= vr.right) return; // already fully visible
+      pos = wrap(link.offsetLeft - 16);
+      velocity = 0;
+      render();
+    };
 
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(el);
+    ro.observe(viewport);
+    ro.observe(track);
 
-    el.addEventListener('scroll', onScroll, { passive: true });
-    el.addEventListener('pointerenter', onEnter);
-    el.addEventListener('pointerleave', onLeave);
-    el.addEventListener('touchstart', pause, { passive: true });
-    el.addEventListener('touchend', resumeLater, { passive: true });
-    el.addEventListener('pointerdown', onPointerDown);
+    viewport.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+    viewport.addEventListener('wheel', onWheel, { passive: false });
+    viewport.addEventListener('focusin', onFocusIn);
     frame = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(frame);
-      clearTimeout(resumeTimer);
       ro.disconnect();
-      el.removeEventListener('scroll', onScroll);
-      el.removeEventListener('pointerenter', onEnter);
-      el.removeEventListener('pointerleave', onLeave);
-      el.removeEventListener('touchstart', pause);
-      el.removeEventListener('touchend', resumeLater);
-      el.removeEventListener('pointerdown', onPointerDown);
+      viewport.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      viewport.removeEventListener('wheel', onWheel);
+      viewport.removeEventListener('focusin', onFocusIn);
     };
   }, [logos.length]);
 
@@ -136,11 +149,11 @@ function LogoStrip({ logos }) {
 
   return (
     <div
-      ref={scrollerRef}
-      className="logo-strip mb-2 overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing select-none"
+      ref={viewportRef}
+      className="logo-strip mb-2 overflow-hidden select-none"
       aria-label="Organizations I'm involved with"
     >
-      <div className="flex w-max gap-4 md:gap-8 py-3">
+      <div ref={trackRef} className="relative flex w-max gap-4 md:gap-8 py-3 will-change-transform">
         {copies.map((copy) =>
           logos.map((logo, i) => (
             <a
@@ -243,6 +256,55 @@ function Involvement() {
     setCurrentCard((prev) => (prev - 1 + detailedInvolvement.length) % detailedInvolvement.length);
   };
 
+  // Touch/pen swipe: the cards follow the finger, then snap to the next or
+  // previous card past 20% of the width or on a quick flick. Vertical swipes
+  // stay native page scrolls (touch-action: pan-y).
+  const lastCard = detailedInvolvement.length - 1;
+  const carouselRef = useRef(null);
+  const swipe = useRef(null);
+  const justSwiped = useRef(false);
+  const [dragX, setDragX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+
+  const onSwipeStart = (e) => {
+    if (e.pointerType === 'mouse') return; // mouse uses the buttons, dots, or clicking a side card
+    swipe.current = { id: e.pointerId, startX: e.clientX, startT: e.timeStamp, active: false };
+  };
+
+  const onSwipeMove = (e) => {
+    const s = swipe.current;
+    if (!s || e.pointerId !== s.id) return;
+    let dx = e.clientX - s.startX;
+    if (!s.active) {
+      if (Math.abs(dx) < 8) return;
+      s.active = true;
+      setIsSwiping(true);
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    }
+    // Rubber-band at the first and last card
+    if ((currentCard === 0 && dx > 0) || (currentCard === lastCard && dx < 0)) dx *= 0.35;
+    setDragX(dx);
+  };
+
+  const onSwipeEnd = (e) => {
+    const s = swipe.current;
+    if (!s || e.pointerId !== s.id) return;
+    swipe.current = null;
+    if (!s.active) return;
+
+    const dx = e.clientX - s.startX;
+    const speed = dx / Math.max(1, e.timeStamp - s.startT); // px/ms
+    const threshold = (carouselRef.current?.offsetWidth || 300) * 0.2;
+    if (e.type !== 'pointercancel') {
+      if ((dx < -threshold || speed < -0.5) && currentCard < lastCard) setCurrentCard(currentCard + 1);
+      else if ((dx > threshold || speed > 0.5) && currentCard > 0) setCurrentCard(currentCard - 1);
+    }
+    setIsSwiping(false);
+    setDragX(0);
+    justSwiped.current = true;
+    setTimeout(() => { justSwiped.current = false; }, 0);
+  };
+
   return (
     <section id="involvement" className="py-10 overflow-hidden">
       {/* Auto-scrolling logos */}
@@ -256,26 +318,36 @@ function Involvement() {
 
       {/* Manual carousel with detailed cards */}
       <div className="relative px-4 sm:px-6">
-        <div className="relative min-h-[500px] md:h-[600px] flex items-center justify-center py-8 md:py-0">
+        <div
+          ref={carouselRef}
+          onPointerDown={onSwipeStart}
+          onPointerMove={onSwipeMove}
+          onPointerUp={onSwipeEnd}
+          onPointerCancel={onSwipeEnd}
+          className={`relative min-h-[500px] md:h-[600px] flex items-center justify-center py-8 md:py-0 touch-pan-y ${isSwiping ? 'select-none' : ''}`}
+        >
           {detailedInvolvement.map((item, index) => {
             const offset = index - currentCard;
             const isActive = index === currentCard;
 
-            // Responsive transforms with better scaling for different screen sizes
+            // Responsive transforms with better scaling for different screen sizes.
+            // On mobile the neighbouring cards peek in at the edges to show it swipes.
             const translateX = isMobile ? offset * 100 : offset * 70;
             const scale = isActive
               ? (isMobile ? 1 : isSmallMedium ? 1.05 : isMedium ? 1.15 : 1.3)
-              : (isMobile ? 0.8 : isSmallMedium ? 0.82 : isMedium ? 0.87 : 0.9);
-            const opacity = isActive ? 1 : (isMobile ? 0 : 0.3);
-            const width = isMobile ? '90%' : isSmallMedium ? '70%' : isMedium ? '65%' : '60%';
+              : (isMobile ? 0.9 : isSmallMedium ? 0.82 : isMedium ? 0.87 : 0.9);
+            const opacity = isActive ? 1 : Math.abs(offset) === 1 ? (isMobile ? 0.5 : 0.3) : (isMobile ? 0 : 0.3);
+            const width = isMobile ? '82%' : isSmallMedium ? '70%' : isMedium ? '65%' : '60%';
 
             return (
               <div
                 key={index}
-                className={`absolute transition-all duration-500 ease-in-out ${isActive ? 'z-20' : 'z-10'
-                  }`}
+                onClick={() => {
+                  if (!isActive && !justSwiped.current) setCurrentCard(index);
+                }}
+                className={`absolute ${isSwiping ? '' : 'transition-all duration-500 ease-in-out'} ${isActive ? 'z-20' : 'z-10 cursor-pointer'}`}
                 style={{
-                  transform: `translateX(${translateX}%) scale(${scale})`,
+                  transform: `translateX(calc(${translateX}% + ${dragX}px)) scale(${scale})`,
                   opacity: opacity,
                   width: width,
                   maxWidth: '800px'

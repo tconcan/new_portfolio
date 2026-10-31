@@ -2,14 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Involvement logo strip: scrollable, but without a visible scrollbar */
-.logo-strip {
-  scrollbar-width: none;
-  overscroll-behavior-x: contain;
+/* Match the app background so overscroll/bounce areas and Safari's toolbar
+   tint never show white. */
+html,
+body {
+  background-color: #030712; /* gray-950 */
 }
 
-.logo-strip::-webkit-scrollbar {
-  display: none;
+/* Full-screen metaball canvas. 100lvh = the viewport with mobile browser
+   toolbars collapsed, so it still reaches the bottom edge after they hide. */
+.background-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+}
+
+/* Involvement logo strip: drag/swipe handled in JS; vertical page scrolling
+   stays native. */
+.logo-strip {
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.logo-strip.is-dragging {
+  cursor: grabbing;
 }
 
 .nav-glow {
