@@ -1,4 +1,7 @@
+import { Expandable, SwipeCarousel, useIsMobile } from "./mobile";
+
 function Experience() {
+  const isMobile = useIsMobile();
   const experiences = [
     {
       company: "Milwaukee Tool",
@@ -27,75 +30,106 @@ function Experience() {
   ];
 
   return (
-    <section id="experience" className="py-20 px-6">
+    <section id="experience" className="py-12 md:py-20 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold text-white text-center mb-12">
+        <h2 className="text-4xl md:text-5xl font-bold text-white text-center mb-8 md:mb-12">
           Professional Experience
         </h2>
 
-        <div className="space-y-8">
-          {experiences.map((experience, index) => (
-            <div
-              key={index}
-              className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 border border-gray-700"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-center">
-                {/* Left - Logo (desktop only) */}
-                <div className="hidden md:flex flex-col items-center justify-center">
-                  <img 
-                    src={experience.logo}
-                    alt={experience.company}
-                    className="w-48 h-48 object-contain rounded-lg"
-                  />
-                </div>
-
-                {/* Right - Content */}
-                <div className="md:col-span-2">
-                  {/* Mobile Header (Visible on Mobile Only) */}
-                  <div className="flex items-center gap-4 mb-4 md:hidden border-b border-gray-700/50 pb-3">
-                    <img 
+        {isMobile ? (
+          <SwipeCarousel label="Professional experience">
+            {experiences.map((experience) => (
+              <MobileExperienceCard key={experience.company} experience={experience} />
+            ))}
+          </SwipeCarousel>
+        ) : (
+          <div className="space-y-8">
+            {experiences.map((experience) => (
+              <div
+                key={experience.company}
+                className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700"
+              >
+                <div className="grid grid-cols-3 gap-8 items-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <img
                       src={experience.logo}
                       alt={experience.company}
-                      className="w-14 h-14 object-contain rounded-lg bg-gray-700/30 p-1 border border-gray-700"
+                      className="w-48 h-48 object-contain rounded-lg"
                     />
-                    <div>
-                      <h3 className="text-xl font-bold text-white leading-tight">
+                  </div>
+
+                  <div className="col-span-2">
+                    <div className="mb-4">
+                      <h3 className="text-3xl font-bold text-white mb-1">
                         {experience.role}
                       </h3>
-                      <p className="text-purple-400 font-medium mt-0.5">
+                      <p className="text-xl text-purple-400 mb-1">
                         {experience.company}
                       </p>
                     </div>
-                  </div>
 
-                  {/* Desktop Header (Hidden on Mobile) */}
-                  <div className="hidden md:block mb-4">
-                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-1">
-                      {experience.role}
-                    </h3>
-                    <p className="text-lg md:text-xl text-purple-400 mb-1">
-                      {experience.company}
+                    <p className="text-sm text-gray-500 mb-4">
+                      {experience.location} • {experience.dates}
                     </p>
+
+                    <ul className="text-gray-300 text-lg leading-relaxed space-y-3 list-disc list-outside pl-8 marker:text-purple-400">
+                      {experience.description.map((point, idx) => (
+                        <li key={idx} className="pl-2">{point}</li>
+                      ))}
+                    </ul>
                   </div>
-
-                  <p className="text-sm text-gray-500 mb-4">
-                    {experience.location} • {experience.dates}
-                  </p>
-
-                  <ul className="text-gray-300 text-base md:text-lg leading-relaxed space-y-3 list-disc list-outside pl-6 md:pl-8 marker:text-purple-400">
-                    {experience.description.map((point, idx) => (
-                      <li key={idx} className="pl-2">{point}</li>
-                    ))}
-                  </ul>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
-export default Experience;
+// Phone layout: compact header, first two bullets, the rest behind a dropdown.
+const VISIBLE_BULLETS = 2;
 
+function MobileExperienceCard({ experience }) {
+  const shown = experience.description.slice(0, VISIBLE_BULLETS);
+  const more = experience.description.slice(VISIBLE_BULLETS);
+  const bulletList = "text-gray-300 text-base leading-relaxed space-y-2 list-disc list-outside pl-5 marker:text-purple-400";
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-5 border border-gray-700">
+      <div className="flex items-center gap-3 mb-3 border-b border-gray-700/50 pb-3">
+        <img
+          src={experience.logo}
+          alt={experience.company}
+          className="w-12 h-12 object-contain rounded-lg bg-gray-700/30 p-1 border border-gray-700"
+        />
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-white leading-tight">{experience.role}</h3>
+          <p className="text-purple-400 font-medium text-sm">{experience.company}</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {experience.location} • {experience.dates}
+          </p>
+        </div>
+      </div>
+
+      <ul className={bulletList}>
+        {shown.map((point, idx) => (
+          <li key={idx} className="pl-1">{point}</li>
+        ))}
+      </ul>
+
+      {more.length > 0 && (
+        <Expandable label={`Show ${more.length} more`}>
+          <ul className={`${bulletList} mt-2`}>
+            {more.map((point, idx) => (
+              <li key={idx} className="pl-1">{point}</li>
+            ))}
+          </ul>
+        </Expandable>
+      )}
+    </div>
+  );
+}
+
+export default Experience;

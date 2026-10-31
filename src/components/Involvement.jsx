@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ClampText, SwipeCarousel, useIsMobile } from './mobile';
 
 const AUTO_SPEED = 45; // px/s, idle drift
 const MAX_FLING_SPEED = 1400; // px/s, cap on how fast a flick can send it
@@ -231,14 +232,13 @@ function Involvement() {
   ];
 
   const [currentCard, setCurrentCard] = useState(2);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [isSmallMedium, setIsSmallMedium] = useState(false);
   const [isMedium, setIsMedium] = useState(false);
 
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;
-      setIsMobile(width < 768);
       setIsSmallMedium(width >= 768 && width < 900);
       setIsMedium(width >= 900 && width < 1024);
     };
@@ -306,16 +306,26 @@ function Involvement() {
   };
 
   return (
-    <section id="involvement" className="py-10 overflow-hidden">
+    <section id="involvement" className="py-8 md:py-10 overflow-hidden">
       {/* Auto-scrolling logos */}
       <div className="px-6">
-        <h2 className="text-4xl md:text-5xl font-bold text-white text-center mb-12">
+        <h2 className="text-4xl md:text-5xl font-bold text-white text-center mb-8 md:mb-12">
           Involvement
         </h2>
       </div>
 
       <LogoStrip logos={logos} />
 
+      {isMobile ? (
+        <div className="mt-6 px-0">
+          <SwipeCarousel label="Involvement" initialIndex={2}>
+            {detailedInvolvement.map((item) => (
+              <MobileInvolvementCard key={item.name} item={item} />
+            ))}
+          </SwipeCarousel>
+        </div>
+      ) : (
+        <>
       {/* Manual carousel with detailed cards */}
       <div className="relative px-4 sm:px-6">
         <div
@@ -446,7 +456,41 @@ function Involvement() {
           </button>
         </div>
       </div>
+        </>
+      )}
     </section>
+  );
+}
+
+// Phone layout: logo + title row, description clamped with "Read more".
+function MobileInvolvementCard({ item }) {
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-5 border border-gray-700">
+      <div className="flex items-center gap-3 mb-3 border-b border-gray-700/50 pb-3">
+        <img
+          src={item.logo}
+          alt=""
+          className="w-12 h-12 object-contain rounded-lg bg-gray-700/30 p-1 border border-gray-700 shrink-0"
+        />
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-white leading-tight">{item.name}</h3>
+          <p className="text-purple-400 font-medium text-sm leading-snug">{item.role}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{item.dates}</p>
+        </div>
+      </div>
+
+      <ClampText lines={3} className="text-gray-300 text-base leading-relaxed">
+        {item.description}
+      </ClampText>
+
+      <div className="flex flex-wrap gap-1.5 mt-3">
+        {item.highlights.map((highlight) => (
+          <span key={highlight} className="bg-purple-600 px-2.5 py-0.5 rounded-full text-xs text-white">
+            {highlight}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
