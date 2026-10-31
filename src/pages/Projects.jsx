@@ -8,6 +8,7 @@ const techColorMap = {
   // Languages & Hardware Design
   "Embedded C": "#2980b9", // Blue
   "SystemVerilog": "#7B1FA2", // Deep Purple
+  "RISC-V": "#283272", // RISC-V Navy
   "Python": "#3572A5", // Python Blue
   "R": "#198CE7", // R Blue
   "JavaScript": "#F1E05A", // JS Yellow
@@ -18,6 +19,7 @@ const techColorMap = {
   "STM32": "#002A54", // ST Dark Blue
   "ESP32": "#E7352C", // Espressif Red
   "Arduino": "#00979D", // Arduino Teal
+  "FPGA": "#C2410C", // Burnt Orange
 
   // Concepts & Tech
   "Radio": "#27AE60", // Green
@@ -82,6 +84,15 @@ const breakpointColumnsObj = {
 
 // `date` is the year and month the project was completed ("YYYY-MM"); it drives the time sort.
 const projects = [
+  {
+    title: "Dual-Core RISC-V Processor",
+    category: "Purdue",
+    date: "2025-12",
+    description: "Over a semester, my partner and I designed a RISC-V processor in SystemVerilog and grew it from a single-cycle core into a dual-core system: a five-stage pipeline with forwarding and hazard detection, instruction and 2-way set-associative data caches, and a snooping bus with MSI cache coherence and LR/SC atomics. Verified in simulation and synthesized for a Xilinx Spartan-7 FPGA.",
+    technologies: ["SystemVerilog", "RISC-V", "FPGA"],
+    image: "/projects/riscv_pipeline.webp",
+    links: []
+  },
   {
     title: "Improved VACLINK™",
     category: "Milwaukee Tool",
