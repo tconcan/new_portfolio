@@ -11,7 +11,7 @@ function About() {
             {/* Left column - Image */}
             <div className="flex justify-center">
               <img 
-                src="about/portrait.webp" 
+                src="/about/portrait.webp" 
                 alt="Tom Concannon" 
                 className="rounded-xl shadow-2xl max-w-xs sm:max-w-sm md:max-w-md w-full object-cover border-4 border-blue-400"
               />

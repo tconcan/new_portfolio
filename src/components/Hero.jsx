@@ -5,7 +5,7 @@ function Hero() {
     <section id="home" className="min-h-[85vh] flex items-center justify-center text-white pt-16">
       <div className="max-w-7xl mx-auto px-6 text-center">
         <img 
-          src="hero/tom.webp" 
+          src="/hero/tom.webp" 
           alt="Tom Concannon" 
           className="w-56 h-56 md:w-72 md:h-72 rounded-full mx-auto mb-8 object-cover border-4 border-blue-400 shadow-lg"
         />
@@ -13,7 +13,7 @@ function Hero() {
           Hi, I'm Tom
         </h1>
         <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-8">
-          Embedded Software Engineer <span className="mx-2">|</span> Leader
+          Engineering <span className="mx-2">|</span> Leadership <span className="mx-2">|</span> Entrepreneurship
         </p>
         <div className="flex gap-4 justify-center">
           <Link 
